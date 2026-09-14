@@ -6,7 +6,7 @@ import {
   staticClasses,
   TextField,
 } from "@decky/ui";
-import { FaCopy, FaCheck, FaExclamationTriangle } from "react-icons/fa";
+import { FaClipboard, FaCheck, FaExclamationTriangle, FaInfoCircle } from "react-icons/fa";
 import { readProfilesBe } from "../backend";
 
 interface ProfileSection {
@@ -68,30 +68,48 @@ function serializeToToml(section: ProfileSection): string {
   return output;
 }
 
-function copyToClipboard(text: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(resolve).catch(reject);
-    } else {
-      // Fallback for older browsers
-      const textarea = document.createElement("textarea");
-      textarea.value = text;
-      textarea.style.position = "fixed";
-      textarea.style.left = "-9999px";
-      textarea.style.top = "-9999px";
-      document.body.appendChild(textarea);
-      textarea.focus();
-      textarea.select();
-      try {
-        document.execCommand("copy");
-        resolve();
-      } catch (e) {
-        reject(e);
+/**
+ * Copy text to clipboard using the proven Decky-Framegen method.
+ * Uses execCommand first (works in gaming mode), with navigator.clipboard as fallback.
+ */
+const copyToClipboard = async (text: string): Promise<boolean> => {
+  try {
+    // Create a hidden input element for text selection
+    const tempInput = document.createElement("input");
+    tempInput.value = text;
+    tempInput.style.position = "absolute";
+    tempInput.style.left = "-9999px";
+    document.body.appendChild(tempInput);
+
+    // Focus and select the text
+    tempInput.focus();
+    tempInput.select();
+
+    // Try copying using execCommand first (most reliable in gaming mode)
+    let copySuccess = false;
+    try {
+      if (document.execCommand("copy")) {
+        copySuccess = true;
       }
-      document.body.removeChild(textarea);
+    } catch {
+      // If execCommand fails, try navigator.clipboard as fallback
+      try {
+        await navigator.clipboard.writeText(text);
+        copySuccess = true;
+      } catch (clipboardError) {
+        console.error("Both copy methods failed:", clipboardError);
+      }
     }
-  });
-}
+
+    // Clean up
+    document.body.removeChild(tempInput);
+
+    return copySuccess;
+  } catch (error) {
+    console.error("Failed to copy to clipboard:", error);
+    return false;
+  }
+};
 
 export function ProfileScanner() {
   const [profiles, setProfiles] = useState<ProfileData[]>([]);
@@ -103,12 +121,14 @@ export function ProfileScanner() {
   const handleCopy = async (profile: ProfileData) => {
     try {
       const tomlString = `[profile]\n${serializeToToml(profile.section)}`;
-      await copyToClipboard(tomlString);
-      setCopiedIndex(profile.index);
-      setTimeout(() => setCopiedIndex(null), 2000);
+      const success = await copyToClipboard(tomlString);
+
+      if (success) {
+        setCopiedIndex(profile.index);
+        setTimeout(() => setCopiedIndex(null), 3000);
+      }
     } catch (err) {
       console.error("Failed to copy profile:", err);
-      setError("Failed to copy to clipboard");
     }
   };
 
@@ -151,7 +171,9 @@ export function ProfileScanner() {
       <PanelSection>
         <PanelSectionRow>
           <div className={staticClasses.Title}>LSFG-VK Profiles</div>
-          <p>Copy individual profile configurations to clipboard for manual editing.</p>
+          <p>
+            Select a profile to copy its configuration to the clipboard.
+          </p>
         </PanelSectionRow>
 
         {loading && (
@@ -206,12 +228,20 @@ export function ProfileScanner() {
               }
             >
               {copiedIndex === profile.index ? (
-                <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                  <FaCheck style={{ color: "#4caf50" }} /> Copied!
+                <span
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    color: "#4CAF50",
+                    fontWeight: "bold",
+                  }}
+                >
+                  <FaCheck style={{ color: "#4CAF50" }} /> Copied to clipboard
                 </span>
               ) : (
                 <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                  <FaCopy /> Copy to Clipboard
+                  <FaClipboard /> Copy Profile
                 </span>
               )}
             </ButtonItem>
@@ -222,9 +252,20 @@ export function ProfileScanner() {
       {profiles.length > 0 && (
         <PanelSection>
           <PanelSectionRow>
-            <div style={{ opacity: 0.5, fontSize: "14px" }}>
-              Showing {filteredProfiles.length} of {profiles.length} profiles
-              {search && ` matching "${search}"`}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                opacity: 0.5,
+                fontSize: "14px",
+              }}
+            >
+              <FaInfoCircle />
+              <span>
+                Showing {filteredProfiles.length} of {profiles.length} profiles
+                {search && ` matching "${search}"`}
+              </span>
             </div>
           </PanelSectionRow>
         </PanelSection>
