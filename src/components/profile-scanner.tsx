@@ -47,27 +47,6 @@ function trimProfileDescription(profile: ProfileData): string {
   return desc.length > 80 ? desc.slice(0, 77) + "..." : desc;
 }
 
-function serializeToToml(section: ProfileSection): string {
-  let output = "";
-  for (const [key, value] of Object.entries(section)) {
-    if (Array.isArray(value)) {
-      const arrContent = value
-        .map((v) => (typeof v === "string" ? `"${v}"` : v))
-        .join(", ");
-      output += `${key} = [${arrContent}]\n`;
-    } else if (typeof value === "boolean") {
-      output += `${key} = ${value}\n`;
-    } else if (typeof value === "string") {
-      output += `${key} = "${value}"\n`;
-    } else if (value === null || value === undefined) {
-      // skip nulls
-    } else {
-      output += `${key} = ${value}\n`;
-    }
-  }
-  return output;
-}
-
 /**
  * Copy text to clipboard using the proven Decky-Framegen method.
  * Uses execCommand first (works in gaming mode), with navigator.clipboard as fallback.
@@ -120,8 +99,9 @@ export function ProfileScanner() {
 
   const handleCopy = async (profile: ProfileData) => {
     try {
-      const tomlString = `[profile]\n${serializeToToml(profile.section)}`;
-      const success = await copyToClipboard(tomlString);
+      const profileName = profile.name || `profile_${profile.index}`;
+      const copyString = `LSFGVK_PROFILE=${profileName}`;
+      const success = await copyToClipboard(copyString);
 
       if (success) {
         setCopiedIndex(profile.index);
