@@ -9,9 +9,30 @@ A simple [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader) plugi
 - Search/filter profiles by name or game target
 - Respects `$LSFGVK_CONFIG` environment variable for custom config paths
 
-## Usage
+## Install
 
-Install via Decky Loader from the plugin store, or install manually from the built zip.
+1. **Download the plugin** from the [releases tab](https://github.com/hydroxycarbamide/decky-lsfg-vk-profile-copier/releases)
+   - Download the "Decky LSFG-VK.zip" file to your Steam Deck
+2. **Install manually through Decky**:
+   - In Game Mode, go to the settings cog in the top right of the Decky Loader tab
+   - Enable "Developer Mode"
+   - Go to "Developer" tab and select "Install Plugin from Zip"
+   - Select the downloaded "Decky LSFG-VK.zip" file
+
+## Building
+
+Building the frontend:
+```bash
+pnpm i
+pnpm run build
+```
+
+Packaging the plugin:
+
+```bash
+./vscode/setup.sh
+./vscode/build.sh
+```
 
 ## Config Path Resolution
 
@@ -22,15 +43,3 @@ The plugin resolves the config file in this order:
 3. `~/.config/lsfg-vk/conf.toml` fallback
 
 This matches how the main `decky-lsfg-vk` plugin resolves its config path.
-
-## Development
-
-```bash
-pnpm i
-pnpm run build
-pnpm run watch
-```
-
-## License
-
-MIT
