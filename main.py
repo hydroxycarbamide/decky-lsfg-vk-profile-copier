@@ -2,25 +2,34 @@ import os
 import json
 import tomllib
 import decky
+from pathlib import Path
 
-class Plugin:
+from .logger import BaseService
+
+
+class Plugin(BaseService):
     """Reads lsfg-vk config.toml and exposes profiles via @decky/api."""
 
     CONFIG_DIR = ".config/lsfg-vk"
     CONFIG_FILENAME = "conf.toml"
 
+    def __init__(self, logger=None):
+        super().__init__(logger)
+
     def _get_config_path(self) -> str:
         """Get the TOML config path."""
         env_path = os.environ.get("LSFGVK_CONFIG")
         if env_path:
+            self.log.info(f"Using config from LSFGVK_CONFIG: {env_path}")
             return env_path
-        
+
         decky_user_home = getattr(decky, "DECKY_USER_HOME", None)
         if decky_user_home:
-            from pathlib import Path
             return str(Path(decky_user_home) / self.CONFIG_DIR / self.CONFIG_FILENAME)
-        
-        return os.path.expanduser("~/.config/lsfg-vk/conf.toml")
+
+        path = os.path.expanduser("~/.config/lsfg-vk/conf.toml")
+        self.log.info(f"Using default config path: {path}")
+        return path
 
     def _read_profiles_from_toml(self, path: str) -> list[dict]:
         """Read profiles from a TOML file, return list of profile dicts."""
@@ -28,13 +37,14 @@ class Plugin:
             with open(path, "rb") as f:
                 data = tomllib.load(f)
         except FileNotFoundError:
-            decky.logger.error(f"Config file not found: {path}")
+            self.log.error(f"Config file not found: {path}")
             return []
         except Exception as e:
-            decky.logger.error(f"Error reading config: {e}")
+            self.log.error(f"Error reading config at {path}: {e}")
             return []
 
         profiles = data.get("profile", [])
+        self.log.info(f"Read {len(profiles)} profiles from config")
         return profiles
 
     async def read_profiles(self) -> str:
@@ -42,22 +52,26 @@ class Plugin:
         try:
             path = self._get_config_path()
             profiles = self._read_profiles_from_toml(path)
+            self.log.debug(f"Serializing {len(profiles)} profiles to JSON")
             return json.dumps(profiles)
         except Exception as e:
-            decky.logger.error(f"read_profiles failed: {e}")
+            self.log.error(f"read_profiles failed: {e}")
             raise RuntimeError(str(e))
 
     async def get_profile_toml(self, index: int) -> str:
         """Get a specific profile section as TOML string (manual serialization)."""
         path = await self._get_config_path()
+        self.log.debug(f"get_profile_toml(index={index})")
         try:
             with open(path, "rb") as f:
                 data = tomllib.load(f)
             profiles = data.get("profile", [])
             if 0 <= index < len(profiles):
                 return self._serialize_toml({"profile": profiles[index]})
+            else:
+                self.log.warning(f"Profile index {index} out of range (0-{len(profiles)-1})")
         except Exception as e:
-            decky.logger.error(f"Error reading profile {index}: {e}")
+            self.log.error(f"Error reading profile {index} from {path}: {e}")
         return ""
 
     @staticmethod
@@ -90,11 +104,11 @@ class Plugin:
                     items.append(str(v))
             return f"{key} = [{', '.join(items)}]\n"
         elif value is None:
-            return f"{key} = \"\"\n"
+            return f'{key} = ""\n'
         return f'{key} = "{value}"\n'
 
     async def _main(self):
-        decky.logger.info("Profile Copier loaded")
+        self.log.info("Profile Copier loaded")
 
     async def _unload(self):
-        decky.logger.info("Profile Copier unloaded")
+        self.log.info("Profile Copier unloaded")
