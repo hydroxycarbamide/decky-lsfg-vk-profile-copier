@@ -15,8 +15,8 @@
     "profile",
     "clipboard"
   ],
-  "author": "You <you@you.tld>",
-  "license": "MIT",
+  "author": "Hydroxycarbamide <eric.ng@ik.me>",
+  "license": "BSD-3-Clause",
   "devDependencies": {
     "@decky/rollup": "^1.0.2",
     "@decky/ui": "^4.11.0",
