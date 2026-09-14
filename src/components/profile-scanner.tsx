@@ -8,6 +8,7 @@ import {
 } from "@decky/ui";
 import { FaClipboard, FaCheck, FaExclamationTriangle, FaInfoCircle } from "react-icons/fa";
 import { readProfilesBe } from "../backend";
+import { logInfo, logDebug, logWarn, logError } from "../logging";
 
 interface ProfileSection {
   name?: string;
@@ -51,7 +52,9 @@ function trimProfileDescription(profile: ProfileData): string {
  * Copy text to clipboard using the proven Decky-Framegen method.
  * Uses execCommand first (works in gaming mode), with navigator.clipboard as fallback.
  */
-const copyToClipboard = async (text: string): Promise<boolean> => {
+const copyToClipboard = async (text: string, profileName?: string): Promise<boolean> => {
+  const label = profileName ? ` for "${profileName}"` : "";
+  logDebug(`Starting clipboard copy${label}`);
   try {
     // Create a hidden input element for text selection
     const tempInput = document.createElement("input");
@@ -68,24 +71,33 @@ const copyToClipboard = async (text: string): Promise<boolean> => {
     let copySuccess = false;
     try {
       if (document.execCommand("copy")) {
+        logDebug(`execCommand("copy") succeeded${label}`);
         copySuccess = true;
+      } else {
+        logWarn(`execCommand("copy") returned false${label}, trying navigator.clipboard`);
       }
     } catch {
       // If execCommand fails, try navigator.clipboard as fallback
       try {
         await navigator.clipboard.writeText(text);
+        logDebug(`navigator.clipboard.writeText succeeded${label}`);
         copySuccess = true;
       } catch (clipboardError) {
-        console.error("Both copy methods failed:", clipboardError);
+        logError(`Both copy methods failed${label}:`, clipboardError);
       }
     }
 
     // Clean up
     document.body.removeChild(tempInput);
 
+    if (copySuccess) {
+      logInfo(`Clipboard write complete${label}`);
+    } else {
+      logWarn(`Copy returned false${label} — clipboard may not be available`);
+    }
     return copySuccess;
   } catch (error) {
-    console.error("Failed to copy to clipboard:", error);
+    logError(`Exception during clipboard copy${label}:`, error);
     return false;
   }
 };
@@ -100,22 +112,29 @@ export function ProfileScanner() {
   const handleCopy = async (profile: ProfileData) => {
     try {
       const profileName = profile.name || `profile_${profile.index}`;
+      logInfo(`Copying profile to clipboard: ${profileName}`);
       const copyString = `LSFGVK_PROFILE=${profileName}`;
-      const success = await copyToClipboard(copyString);
+      const success = await copyToClipboard(copyString, profileName);
 
       if (success) {
+        logInfo(`Profile copied: ${profileName}`);
         setCopiedIndex(profile.index);
-        setTimeout(() => setCopiedIndex(null), 3000);
+        setTimeout(() => {
+          setCopiedIndex(null);
+          logDebug("Reset copied state for profile", profile.index);
+        }, 3000);
+      } else {
+        logError(`Copy failed for profile: ${profileName}`);
       }
     } catch (err) {
-      console.error("Failed to copy profile:", err);
+      logError(`Error copying profile:`, err);
     }
   };
 
   useEffect(() => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
-      console.error("Timeout fetching profiles after 5 seconds");
+      logError("Timeout fetching profiles after 5 seconds");
       setError("Timed out while loading profiles. Check Python backend.");
       setLoading(false);
       controller.abort();
@@ -123,10 +142,11 @@ export function ProfileScanner() {
 
     const fetchProfiles = async () => {
       try {
-        console.log("Fetching profiles...");
+        logInfo("Fetching profiles from backend...");
         const profilesJson = await readProfilesBe();
-        console.log("Received profiles JSON:", profilesJson);
+        logDebug(`Raw JSON response (${profilesJson.length} chars)`);
         const parsed: ProfileSection[] = JSON.parse(profilesJson);
+        logInfo(`Parsed ${parsed.length} profile(s) from JSON`);
         const profileData: ProfileData[] = parsed.map(
           (section: ProfileSection, index: number) => ({
             index,
@@ -134,12 +154,17 @@ export function ProfileScanner() {
             section,
           })
         );
-        console.log("Parsed profiles:", profileData);
+        profileData.forEach((p) =>
+          logDebug(
+            `Profile ${p.index}: ${p.name || "unnamed"} (${Object.keys(p.section).length} keys)`
+          )
+        );
+        logInfo(`Setting state with ${profileData.length} profile(s)`);
         setProfiles(profileData);
         setLoading(false);
         clearTimeout(timeoutId);
       } catch (err) {
-        console.error("Failed to fetch profiles:", err);
+        logError(`Failed to fetch profiles:`, err);
         setError(`Failed to read config: ${err instanceof Error ? err.message : String(err)}`);
         setLoading(false);
         clearTimeout(timeoutId);
