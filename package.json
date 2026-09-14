@@ -1,6 +1,6 @@
 {
   "name": "decky-lsfg-vk-profile-copier",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Copy LSFG-VK profile configs to clipboard from SteamOS.",
   "type": "module",
   "scripts": {
