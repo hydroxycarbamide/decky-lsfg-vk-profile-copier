@@ -12,12 +12,12 @@ A simple [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader) plugi
 ## Install
 
 1. **Download the plugin** from the [releases tab](https://github.com/hydroxycarbamide/decky-lsfg-vk-profile-copier/releases)
-   - Download the "Decky LSFG-VK.zip" file to your Steam Deck
+   - Download the "decky-lsfg-vk-profile-copier" file to your Steam Deck
 2. **Install manually through Decky**:
    - In Game Mode, go to the settings cog in the top right of the Decky Loader tab
    - Enable "Developer Mode"
    - Go to "Developer" tab and select "Install Plugin from Zip"
-   - Select the downloaded "Decky LSFG-VK.zip" file
+   - Select the downloaded "decky-lsfg-vk-profile-copier" file
 
 ## Building
 
