@@ -50,18 +50,18 @@ jobs:
       - name: Build plugin
         run: |
           $(pwd)/cli/decky plugin build $(pwd)
-          unzip "out/LSFG-VK Profile Copier.zip" -d "out/LSFG-VK Profile Copier"
+          unzip "out/LSFG-VK-Profile-Copier.zip" -d "out/LSFG-VK-Profile-Copier"
 
       - name: show files
         run: |
-          ls out/LSFG-VK Profile Copier.zip
-          7z l out/LSFG-VK Profile Copier.zip
+          ls "out/LSFG-VK-Profile-Copier.zip"
+          7z l "out/LSFG-VK-Profile-Copier.zip"
 
       - name: Publish Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: LSFG-VK Profile Copier
-          path: out/LSFG-VK Profile Copier.zip
+          name: LSFG-VK-Profile-Copier
+          path: out/LSFG-VK-Profile-Copier.zip
 
   publish:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -81,10 +81,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            /tmp/artifacts/LSFG-VK Profile Copier/LSFG-VK Profile Copier.zip
+            /tmp/artifacts/LSFG-VK-Profile-Copier/LSFG-VK-Profile-Copier.zip
           tag_name: ${{ github.ref_name }}
           body: |
-            LSFG-VK Profile Copier
+            LSFG-VK-Profile-Copier
           draft: true
           generate_release_notes: true
           prerelease: contains(github.ref, 'pre')

@@ -9,7 +9,7 @@ function Content() {
 
 export default definePlugin(() => {
   return {
-    name: "LSFG-VK Profile Copier",
+    name: "LSFG-VK-Profile-Copier",
     titleView: <div className={staticClasses.Title}>Profile Copier</div>,
     content: <Content />,
     icon: <FaCopy />,
