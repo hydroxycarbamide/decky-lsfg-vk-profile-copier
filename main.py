@@ -9,27 +9,20 @@ class Plugin:
     CONFIG_DIR = ".config/lsfg-vk"
     CONFIG_FILENAME = "conf.toml"
 
-    async def _get_config_path(self) -> str:
-        """Get the TOML config path.
-        
-        Priority:
-        1. $LSFGVK_CONFIG environment variable
-        2. DECKY_USER_HOME/.config/lsfg-vk/conf.toml
-        """
+    def _get_config_path(self) -> str:
+        """Get the TOML config path."""
         env_path = os.environ.get("LSFGVK_CONFIG")
         if env_path:
             return env_path
         
-        # Use decky.DECKY_USER_HOME like decky-lsfg-vk does
         decky_user_home = getattr(decky, "DECKY_USER_HOME", None)
         if decky_user_home:
             from pathlib import Path
             return str(Path(decky_user_home) / self.CONFIG_DIR / self.CONFIG_FILENAME)
         
-        # Fallback (shouldn't happen in Decky)
         return os.path.expanduser("~/.config/lsfg-vk/conf.toml")
 
-    async def _read_profiles_from_toml(self, path: str) -> list[dict]:
+    def _read_profiles_from_toml(self, path: str) -> list[dict]:
         """Read profiles from a TOML file, return list of profile dicts."""
         try:
             with open(path, "rb") as f:
@@ -46,9 +39,13 @@ class Plugin:
 
     async def read_profiles(self) -> str:
         """Public API: read profiles and return JSON string."""
-        path = await self._get_config_path()
-        profiles = await self._read_profiles_from_toml(path)
-        return json.dumps(profiles)
+        try:
+            path = self._get_config_path()
+            profiles = self._read_profiles_from_toml(path)
+            return json.dumps(profiles)
+        except Exception as e:
+            decky.logger.error(f"read_profiles failed: {e}")
+            raise RuntimeError(str(e))
 
     async def get_profile_toml(self, index: int) -> str:
         """Get a specific profile section as TOML string (manual serialization)."""

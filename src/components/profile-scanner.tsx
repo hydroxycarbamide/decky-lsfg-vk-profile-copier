@@ -113,9 +113,19 @@ export function ProfileScanner() {
   };
 
   useEffect(() => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.error("Timeout fetching profiles after 5 seconds");
+      setError("Timed out while loading profiles. Check Python backend.");
+      setLoading(false);
+      controller.abort();
+    }, 5000);
+
     const fetchProfiles = async () => {
       try {
+        console.log("Fetching profiles...");
         const profilesJson = await readProfilesBe();
+        console.log("Received profiles JSON:", profilesJson);
         const parsed: ProfileSection[] = JSON.parse(profilesJson);
         const profileData: ProfileData[] = parsed.map(
           (section: ProfileSection, index: number) => ({
@@ -124,15 +134,19 @@ export function ProfileScanner() {
             section,
           })
         );
+        console.log("Parsed profiles:", profileData);
         setProfiles(profileData);
         setLoading(false);
+        clearTimeout(timeoutId);
       } catch (err) {
         console.error("Failed to fetch profiles:", err);
-        setError("Failed to read config file. Make sure lsfg-vk is installed.");
+        setError(`Failed to read config: ${err instanceof Error ? err.message : String(err)}`);
         setLoading(false);
+        clearTimeout(timeoutId);
       }
     };
     fetchProfiles();
+    return () => clearTimeout(timeoutId);
   }, []);
 
   const filteredProfiles = profiles.filter((p) => {
